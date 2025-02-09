@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HealthGuard AI Agent</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
+    <script src="https://accounts.google.com/gsi/client"></script> <!-- Google OAuth -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f6f8fa;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+        }
+
+        .header {
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #1a2b3c;
+        }
+
+        .auth-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            position: relative;
+        }
+
+        .login-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .login-button:hover {
+            background-color: #2563eb;
+        }
+
+        .login-button:disabled {
+            background-color: #93c5fd;
+            cursor: not-allowed;
+        }
+
+        .user-info {
+            display: none;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-address {
+            font-size: 0.875rem;
+            color: #4b5563;
+            background: #f3f4f6;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+        }
+
+        .disconnect-button {
+            padding: 0.5rem;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: background 0.2s;
+        }
+
+        .disconnect-button:hover {
+            background: #dc2626;
+        }
+
+        .content {
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+
+        @media (min-width: 1024px) {
+            .content {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .card {
+            background: #f8fafc;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header h2 {
+            font-size: 1.25rem;
+            margin-left: 0.5rem;
+            color: #1a2b3c;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: flex;
+            align-items: center;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #4b5563;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group label .icon {
+            margin-right: 0.5rem;
+            width: 1rem;
+            height: 1rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            transition: border-color 0.15s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+        }
+
+        .submit-button {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .submit-button:hover {
+            background: #2563eb;
+        }
+
+        .submit-button:disabled {
+            background: #93c5fd;
+            cursor: not-allowed;
+        }
+
+        .chat-container {
+            background: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            height: 400px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .message {
+            display: flex;
+            margin-bottom: 1rem;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 80%;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .user .message-content {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .bot .message-content {
+            background: #f3f4f6;
+            color: #1f2937;
+        }
+
+        .chat-input-container {
+            padding: 1rem;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chat-input {
+            flex: 1;
+        }
+
+        .send-button {
+            width: auto;
+            padding: 0.75rem;
+            background: #10b981;
+            color: white;
+        }
+
+        .send-button:hover {
+            background: #059669;
+        }
+
+        .spinner {
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid #ffffff;
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .notification {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            animation: slideIn 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.success {
+            background: #ecfdf5;
+            color: #047857;
+        }
+
+        .notification.error {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .error-message {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            margin-top: 0.5rem;
+            white-space: nowrap;
+            display: none;
+            z-index: 1000;
+        }
+
+        .error-message.visible {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>HealthGuard AI Agent</h1>
+            <div class="auth-section">
+                <button id="loginButton" class="login-button" onclick="handleZkLogin()">
+                    <span class="icon" data-lucide="log-in"></span>
+                    <span>Login with Google</span>
+                </button>
+                
+                <div id="userInfo" class="user-info">
+                    <span id="userAddress" class="user-address"></span>
+                    <button onclick="handleDisconnect()" class="disconnect-button">
+                        <span class="icon" data-lucide="log-out"></span>
+                    </button>
+                </div>
+                
+                <div id="errorMessage" class="error-message"></div>
+            </div>
+        </header>
+
+        <div class="content">
+            <!-- Health Metrics Form -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="icon" data-lucide="activity"></span>
+                    <h2>Health Metrics</h2>
+                </div>
+                <form id="healthForm">
+                    <div class="form-group">
+                        <label>
+                            <span class="icon" data-lucide="heart"></span>
+                            Heart Rate (bpm)
+                        </label>
+                        <input type="number" name="heart_rate" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>
+                                <span class="icon" data-lucide="activity"></span>
+                                Systolic BP
+                            </label>
+                            <input type="number" name="systolic" required>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <span class="icon" data-lucide="activity"></span>
+                                Diastolic BP
+                            </label>
+                            <input type="number" name="diastolic" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <span class="icon" data-lucide="droplet"></span>
+                            Blood Glucose (mg/dL)
+                        </label>
+                        <input type="number" name="blood_glucose" required>
+                    </div>
+                    <button type="submit" class="submit-button">Submit Health Data</button>
+                </form>
+                <div id="healthNotification"></div>
+            </div>
+
+            <!-- Chat Interface -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="icon" data-lucide="message-square"></span>
+                    <h2>Chat with HealthGuard</h2>
+                </div>
+                <div class="chat-container">
+                    <div class="chat-messages" id="chatMessages"></div>
+                    <div class="chat-input-container">
+                        <input type="text" class="chat-input" id="chatInput" placeholder="Type your message...">
+                        <button class="send-button" id="sendMessage">
+                            <span class="icon" data-lucide="send"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize everything after DOM content is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeIcons();
+            initializeHealthForm();
+            initializeChat();
+            checkLoginStatus();
+        });
+
+        // Icon initialization
+        function initializeIcons() {
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        }
+
+        // Authentication functions
+        function showError(message) {
+            const errorElement = document.getElementById('errorMessage');
+            errorElement.textContent = message;
+            errorElement.classList.add('visible');
+            setTimeout(() => {
+                errorElement.classList.remove('visible');
+            }, 5000);
+        }
+
+        function updateAuthDisplay(loggedIn, address = '') {
+            const loginButton = document.getElementById('loginButton');
+            const userInfo = document.getElementById('userInfo');
+            const userAddress = document.getElementById('userAddress');
+
+            if (loggedIn) {
+                loginButton.style.display = 'none';
+                userInfo.style.display = 'flex';
+                userAddress.textContent = `${address.slice(0, 6)}...${address.slice(-4)}`;
+            } else {
+                loginButton.style.display = 'flex';
+                userInfo.style.display = 'none';
+                userAddress.textContent = '';
+            }
+        }
+
+        async function handleZkLogin() {
+            const loginButton = document.getElementById('loginButton');
+
+            try {
+                loginButton.disabled = true;
+                loginButton.innerHTML = '<div class="spinner"></div><span>Connecting...</span>';
+
+                // Step 1: Generate nonce
+                const nonceResponse = await fetch('http://127.0.0.1:5200/auth/nonce', {
+                    method: 'POST'
+                });
+                const { nonce } = await nonceResponse.json();
+
+                // Step 2: Initialize Google OAuth
+                google.accounts.id.initialize({
+                    client_id: '755881124654-r1oin03k4lq6e5q2ctu05a0nulc6tnmp.apps.googleusercontent.com',
+                    callback: async (response) => {
+                        const jwt = response.credential;
+
+                        // Step 3: Verify with backend
+                        const verifyResponse = await fetch('http://127.0.0.1:5200/auth/verify', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ jwt, nonce })
+                        });
+
+                        if (!verifyResponse.ok) throw new Error('Verification failed');
+
+                        const { token, address } = await verifyResponse.json();
+                        localStorage.setItem('suiToken', token);
+                        updateAuthDisplay(true, address);
+                    }
+                });
+
+                // Step 4: Prompt Google OAuth
+                google.accounts.id.prompt();
+
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                loginButton.disabled = false;
+                loginButton.innerHTML = `
+                    <span class="icon" data-lucide="log-in"></span>
+                    <span>Login with Google</span>
+                `;
+                initializeIcons();
+            }
+        }
+
+        async function handleDisconnect() {
+            localStorage.removeItem('suiToken');
+            updateAuthDisplay(false);
+        }
+
+        async function checkLoginStatus() {
+            const token = localStorage.getItem('suiToken');
+            if (token) {
+                try {
+                    const response = await fetch('http://127.0.0.1:5200/auth/session', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        const { address } = await response.json();
+                        updateAuthDisplay(true, address);
+                    } else {
+                        handleDisconnect();
+                    }
+                } catch (error) {
+                    handleDisconnect();
+                }
+            }
+        }
+
+        // Health Form functions
+        function initializeHealthForm() {
+            const healthForm = document.getElementById('healthForm');
+            healthForm.addEventListener('submit', handleHealthSubmit);
+        }
+
+        async function handleHealthSubmit(e) {
+            e.preventDefault();
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<div class="spinner"></div>Submitting...';
+
+            const formData = new FormData(e.target);
+            const healthData = {
+                heart_rate: Number(formData.get('heart_rate')),
+                blood_pressure: {
+                    systolic: Number(formData.get('systolic')),
+                    diastolic: Number(formData.get('diastolic'))
+                },
+                blood_glucose: Number(formData.get('blood_glucose')),
+                timestamp: new Date().toISOString()
+            };
+
+            try {
+                const response = await fetch('http://127.0.0.1:5200/submitAlert', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('suiToken')}`
+                    },
+                    body: JSON.stringify(healthData)
+                });
+
+                if (!response.ok) throw new Error('Failed to submit health data');
+
+                showNotification('success', 'Health data submitted successfully!');
+                e.target.reset();
+            } catch (error) {
+                showNotification('error', 'Error submitting health data. Please try again.');
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Submit Health Data';
+            }
+        }
+
+        function showNotification(type, message) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <span class="icon" data-lucide="${type === 'success' ? 'check-circle' : 'alert-circle'}"></span>
+                <span>${message}</span>
+            `;
+            
+            document.body.appendChild(notification);
+            initializeIcons();
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        }
+
+        // Chat functions
+        function initializeChat() {
+            const sendButton = document.getElementById('sendMessage');
+            const chatInput = document.getElementById('chatInput');
+            
+            sendButton.addEventListener('click', handleSendMessage);
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleSendMessage();
+            });
+        }
+
+        function appendMessage(content, isUser) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+            messageDiv.innerHTML = `
+                <div class="message-content">${content}</div>
+            `;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function handleSendMessage() {
+            const chatInput = document.getElementById('chatInput');
+            const sendButton = document.getElementById('sendMessage');
+            const message = chatInput.value.trim();
+            
+            if (!message) return;
+
+            appendMessage(message, true);
+            chatInput.value = '';
+            sendButton.disabled = true;
+
+            try {
+                const response = await fetch('http://127.0.0.1:5200/chat', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('suiToken')}`
+                    },
+                    body: JSON.stringify({ message })
+                });
+
+                if (!response.ok) throw new Error('Failed to send message');
+
+                const data = await response.json();
+                appendMessage(data.response, false);
+            } catch (error) {
+                appendMessage('Sorry, I encountered an error. Please try again.', false);
+            } finally {
+                sendButton.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
