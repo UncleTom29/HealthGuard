@@ -5,7 +5,7 @@
     "main": "dist/app.js",
     "scripts": {
         "build": "tsc",
-        "start": "npm run build && node dist/app.js"
+        "start": "node dist/app.js"
     },
     "dependencies": {
         "@mysten/sui": "^1.21.1",
